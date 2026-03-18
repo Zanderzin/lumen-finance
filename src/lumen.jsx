@@ -608,7 +608,7 @@ function BarChart({data,labels,colors,height=150,fmt}) {
   );
 }
 
-function DonutChart({data,colors,fmt}) {
+function DonutChart({data,colors,fmt,onSliceClick,selectedLabel}) {
   const [hov,setHov]=useState(null);
   if(!data.length) return null;
   const total=data.reduce((s,d)=>s+d.value,0);
@@ -619,15 +619,13 @@ function DonutChart({data,colors,fmt}) {
     const pct=d.value/total,ang=pct*360,s=cum;cum+=ang;
     const x1=cx+r*Math.cos(toR(s)),y1=cy+r*Math.sin(toR(s));
     const x2=cx+r*Math.cos(toR(s+ang)),y2=cy+r*Math.sin(toR(s+ang));
-    // ponto central da fatia para tooltip
     const midA=s+ang/2;
-    const tx=cx+(r*0.65)*Math.cos(toR(midA));
-    const ty=cy+(r*0.65)*Math.sin(toR(midA));
     return{path:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${ang>180?1:0},1 ${x2},${y2} Z`,
-      color:colors[i%colors.length], label:d.label, value:d.value, pct, tx, ty};
+      color:colors[i%colors.length], label:d.label, value:d.value, pct, midA};
   });
   const formatVal = v => fmt ? fmt(v) : v>=1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(1);
-  const hovSlice = hov!==null ? slices[hov] : null;
+  const activeIdx = hov!==null ? hov : (selectedLabel ? slices.findIndex(s=>s.label===selectedLabel) : -1);
+  const activeSlice = activeIdx>=0 ? slices[activeIdx] : null;
 
   return(
     <svg viewBox={`0 0 ${W} ${W}`} style={{width:"100%",maxWidth:176,cursor:"pointer",overflow:"visible"}}>
@@ -636,30 +634,44 @@ function DonutChart({data,colors,fmt}) {
           <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.5"/>
         </filter>
       </defs>
-      {slices.map((s,i)=>(
-        <path key={i} d={s.path} fill={s.color}
-          opacity={hov===null?0.9:hov===i?1:0.45}
-          transform={hov===i?`translate(${Math.cos(toR(cum))*0},0)`:undefined}
-          style={{transition:"opacity 0.15s", outline:"none"}}
-          onMouseEnter={()=>setHov(i)}
-          onMouseLeave={()=>setHov(null)}/>
-      ))}
-      <circle cx={cx} cy={cy} r={r-28} fill="#0a0a0a"
-        onMouseEnter={()=>setHov(null)}/>
-      {/* Label central no hover */}
-      {hovSlice && (
+      {slices.map((s,i)=>{
+        const isActive = i===activeIdx;
+        const isSelected = s.label===selectedLabel;
+        // fatia selecionada fica levemente destacada para fora
+        const pullOut = isSelected ? 6 : 0;
+        const tx = pullOut>0 ? Math.cos(toR(s.midA))*pullOut : 0;
+        const ty = pullOut>0 ? Math.sin(toR(s.midA))*pullOut : 0;
+        return(
+          <path key={i} d={s.path} fill={s.color}
+            opacity={selectedLabel&&!isSelected&&hov===null ? 0.3 : isActive ? 1 : 0.85}
+            transform={`translate(${tx},${ty})`}
+            style={{transition:"opacity 0.15s, transform 0.2s"}}
+            onMouseEnter={()=>setHov(i)}
+            onMouseLeave={()=>setHov(null)}
+            onClick={()=>onSliceClick&&onSliceClick(s.label)}
+          />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={r-28} fill="#0a0a0a" onMouseEnter={()=>setHov(null)}/>
+      {/* Label central — hover tem prioridade sobre selecionado */}
+      {activeSlice && (
         <>
-          <text x={cx} y={cy-6} textAnchor="middle" fontSize="9" fill={hovSlice.color}
-            fontFamily="DM Sans,sans-serif" fontWeight="700">{hovSlice.label}</text>
+          <text x={cx} y={cy-6} textAnchor="middle" fontSize="9" fill={activeSlice.color}
+            fontFamily="DM Sans,sans-serif" fontWeight="700">{activeSlice.label}</text>
           <text x={cx} y={cy+8} textAnchor="middle" fontSize="10" fill="#f0ebe4"
             fontFamily="DM Sans,sans-serif" fontWeight="800">
-            {(hovSlice.pct*100).toFixed(1)}%
+            {(activeSlice.pct*100).toFixed(1)}%
           </text>
           <text x={cx} y={cy+20} textAnchor="middle" fontSize="8" fill="#666"
             fontFamily="DM Sans,sans-serif">
-            {fmt?fmt(hovSlice.value):formatVal(hovSlice.value)}
+            {formatVal(activeSlice.value)}
           </text>
         </>
+      )}
+      {/* Indicador de clique quando nada está em hover */}
+      {!activeSlice && (
+        <text x={cx} y={cy+5} textAnchor="middle" fontSize="8" fill="#333"
+          fontFamily="DM Sans,sans-serif">clique p/ detalhar</text>
       )}
     </svg>
   );
@@ -797,6 +809,7 @@ const S={
 export default function LumenApp() {
   const [data,setData]=useState(null);
   const [catOverrides,setCatOverrides]=useState({}); // {descricao -> categoria manual}
+  const [catSelecionada,setCatSelecionada]=useState(null); // categoria clicada no donut
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
   const [loadingStep,setLoadingStep]=useState(0);
@@ -906,8 +919,9 @@ export default function LumenApp() {
     if(searchTx) d=d.filter(r=>r.descricao.toLowerCase().includes(searchTx.toLowerCase()));
     if(sortTx==="data_desc")  d.sort((a,b)=>b.data-a.data);
     if(sortTx==="data_asc")   d.sort((a,b)=>a.data-b.data);
-    if(sortTx==="valor_desc") d.sort((a,b)=>b.valor-a.valor);
-    if(sortTx==="valor_asc")  d.sort((a,b)=>a.valor-b.valor);
+    // Ordena por valor absoluto — "maior gasto" = maior saída, independente do sinal negativo
+    if(sortTx==="valor_desc") d.sort((a,b)=>Math.abs(b.valor)-Math.abs(a.valor));
+    if(sortTx==="valor_asc")  d.sort((a,b)=>Math.abs(a.valor)-Math.abs(b.valor));
     return d.slice(0,120);
   },[filtered,searchTx,sortTx]);
 
@@ -1127,54 +1141,137 @@ export default function LumenApp() {
           </>}
 
           {/* ══ CATEGORIAS ══ */}
-          {activeTab===2&&<>
-            <h1 style={S.pT}>Categorias</h1>
-            <p style={S.pS}>Distribuição dos gastos por categoria</p>
-            <div style={S.g13} className="lg2">
-              <div style={S.card}>
-                <div style={S.cT}>Distribuição</div>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
-                  <DonutChart data={byCategoria.slice(0,10)} colors={CAT_COLORS} fmt={fmtBRL}/>
+          {activeTab===2&&(()=>{
+            const txsCat = catSelecionada
+              ? filtered.filter(r=>r.valor<0&&r.categoria===catSelecionada)
+              : null;
+            const catIdx = byCategoria.findIndex(c=>c.label===catSelecionada);
+            const catColor = catIdx>=0 ? CAT_COLORS[catIdx%CAT_COLORS.length] : "#6ee7b7";
+            return <>
+              <h1 style={S.pT}>Categorias</h1>
+              <p style={S.pS}>Distribuição dos gastos · clique em uma fatia para detalhar</p>
+              <div style={S.g13} className="lg2">
+                <div style={S.card}>
+                  <div style={S.cT}>Distribuição</div>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:14,cursor:"pointer"}}
+                    onClick={()=>setCatSelecionada(null)}>
+                    <DonutChart
+                      data={byCategoria.slice(0,10)}
+                      colors={CAT_COLORS}
+                      fmt={fmtBRL}
+                      onSliceClick={label=>setCatSelecionada(prev=>prev===label?null:label)}
+                      selectedLabel={catSelecionada}
+                    />
+                  </div>
+                  {catSelecionada&&(
+                    <div style={{marginBottom:10,padding:"6px 12px",borderRadius:8,background:`${catColor}15`,border:`1px solid ${catColor}40`,fontSize:"0.78rem",color:catColor,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span>● {catSelecionada}</span>
+                      <button onClick={()=>setCatSelecionada(null)} style={{background:"none",border:"none",color:catColor,cursor:"pointer",fontSize:"0.9rem"}}>✕</button>
+                    </div>
+                  )}
+                  {byCategoria.map((c,i)=>(
+                    <div key={c.label} style={{...S.legI,cursor:"pointer",opacity:catSelecionada&&catSelecionada!==c.label?0.35:1,transition:"opacity 0.15s"}}
+                      onClick={()=>setCatSelecionada(prev=>prev===c.label?null:c.label)}>
+                      <div style={{...S.legD,background:CAT_COLORS[i%CAT_COLORS.length]}}/>
+                      <span style={{...S.legL,color:catSelecionada===c.label?"#f0ebe4":""}}>{c.label}</span>
+                      <span style={S.legV}>{c.pct.toFixed(1)}%</span>
+                    </div>
+                  ))}
                 </div>
-                {byCategoria.map((c,i)=>(
-                  <div key={c.label} style={S.legI}>
-                    <div style={{...S.legD,background:CAT_COLORS[i%CAT_COLORS.length]}}/>
-                    <span style={S.legL}>{c.label}</span>
-                    <span style={S.legV}>{c.pct.toFixed(1)}%</span>
-                  </div>
-                ))}
+                <div style={S.card}>
+                  <div style={S.cT}>Ranking de gastos</div>
+                  {byCategoria.map((c,i)=>(
+                    <div key={c.label} style={{cursor:"pointer",opacity:catSelecionada&&catSelecionada!==c.label?0.3:1,transition:"opacity 0.15s"}}
+                      onClick={()=>setCatSelecionada(prev=>prev===c.label?null:c.label)}>
+                      <div style={S.barH}>
+                        <span style={{...S.barL,color:catSelecionada===c.label?"#f0ebe4":""}}>{c.label}</span>
+                        <span style={S.barV}>{fmtBRL(c.value)}</span>
+                      </div>
+                      <div style={S.barT}><div style={{...S.barF,width:`${c.pct}%`,background:CAT_COLORS[i%CAT_COLORS.length]}}/></div>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Tabela de transações da categoria selecionada */}
+              {catSelecionada&&txsCat&&(
+                <div style={{...S.card,marginBottom:18,border:`1px solid ${catColor}30`}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                    <div>
+                      <div style={{...S.cT,color:catColor,marginBottom:4}}>{catSelecionada}</div>
+                      <div style={{fontSize:"0.82rem",color:"#555"}}>{txsCat.length} transações · {fmtBRL(txsCat.reduce((s,r)=>s+Math.abs(r.valor),0))}</div>
+                    </div>
+                    <button onClick={()=>setCatSelecionada(null)} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"6px 14px",color:"#666",fontSize:"0.78rem",cursor:"pointer"}}>Fechar ✕</button>
+                  </div>
+                  <div style={{overflowX:"auto"}}>
+                    <table style={S.tbl}>
+                      <thead><tr>{["Data","Descrição","Valor","Mover para"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {txsCat.sort((a,b)=>Math.abs(b.valor)-Math.abs(a.valor)).map((r,i)=>{
+                          const overrideKey=r.descricao+"||"+r.data.toISOString();
+                          const isEdited=!!catOverrides[overrideKey];
+                          return(
+                            <tr key={i} style={S.tr} className="ltr">
+                              <td style={S.td}>{fmtDate(r.data)}</td>
+                              <td style={S.tdM}>{r.descricao.slice(0,60)}</td>
+                              <td style={{...S.td,color:"#f87171",fontWeight:600}}>{fmtBRL(r.valor)}</td>
+                              <td style={{...S.td,padding:"8px 14px"}}>
+                                <select
+                                  value={r.categoria}
+                                  onChange={e=>{changeCat(r,e.target.value); if(e.target.value!==catSelecionada) setCatSelecionada(e.target.value);}}
+                                  style={{
+                                    background:isEdited?`${catColor}18`:"rgba(255,255,255,0.04)",
+                                    border:isEdited?`1px solid ${catColor}50`:"1px solid rgba(255,255,255,0.08)",
+                                    borderRadius:8, padding:"5px 28px 5px 10px",
+                                    color:isEdited?catColor:"#888",
+                                    fontSize:"0.78rem", fontWeight:600, cursor:"pointer",
+                                    outline:"none", appearance:"none", WebkitAppearance:"none",
+                                    backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat:"no-repeat", backgroundPosition:"right 8px center",
+                                  }}
+                                >
+                                  {[...Object.keys(CATEGORIAS_KW),"Transferências","Outros"].map(c=>(
+                                    <option key={c} value={c} style={{background:"#141414",color:"#f0ebe4"}}>{c}</option>
+                                  ))}
+                                </select>
+                                {isEdited&&<span style={{fontSize:"0.62rem",color:"#6ee7b7",marginLeft:4}}>✎</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Tabela resumo geral */}
               <div style={S.card}>
-                <div style={S.cT}>Ranking de gastos</div>
-                {byCategoria.map((c,i)=>(
-                  <div key={c.label}>
-                    <div style={S.barH}><span style={S.barL}>{c.label}</span><span style={S.barV}>{fmtBRL(c.value)}</span></div>
-                    <div style={S.barT}><div style={{...S.barF,width:`${c.pct}%`,background:CAT_COLORS[i%CAT_COLORS.length]}}/></div>
-                  </div>
-                ))}
+                <div style={S.cT}>Resumo por categoria</div>
+                <div style={{overflowX:"auto"}}>
+                  <table style={S.tbl}>
+                    <thead><tr>{["Categoria","Total","Transações","Ticket médio","% do total"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {byCategoria.map((c,i)=>{
+                        const txs=filtered.filter(r=>r.valor<0&&r.categoria===c.label);
+                        const isSelected=catSelecionada===c.label;
+                        return<tr key={c.label} style={{...S.tr,cursor:"pointer",background:isSelected?`${CAT_COLORS[i%CAT_COLORS.length]}0a`:""}}
+                          className="ltr" onClick={()=>setCatSelecionada(prev=>prev===c.label?null:c.label)}>
+                          <td style={S.tdM}>
+                            <span style={{...S.badge,background:`${CAT_COLORS[i%CAT_COLORS.length]}18`,color:CAT_COLORS[i%CAT_COLORS.length]}}>{c.label}</span>
+                          </td>
+                          <td style={{...S.td,color:"#f87171"}}>{fmtBRL(c.value)}</td>
+                          <td style={S.td}>{txs.length}</td>
+                          <td style={S.td}>{fmtBRL(txs.length?c.value/txs.length:0)}</td>
+                          <td style={S.td}>{c.pct.toFixed(1)}%</td>
+                        </tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-            <div style={S.card}>
-              <div style={S.cT}>Detalhamento por categoria</div>
-              <div style={{overflowX:"auto"}}>
-                <table style={S.tbl}>
-                  <thead><tr>{["Categoria","Total","Transações","Ticket médio","% do total"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>
-                    {byCategoria.map((c,i)=>{
-                      const txs=filtered.filter(r=>r.valor<0&&r.categoria===c.label);
-                      return<tr key={c.label} style={S.tr} className="ltr">
-                        <td style={S.tdM}><span style={{...S.badge,background:`${CAT_COLORS[i%CAT_COLORS.length]}18`,color:CAT_COLORS[i%CAT_COLORS.length]}}>{c.label}</span></td>
-                        <td style={{...S.td,color:"#f87171"}}>{fmtBRL(c.value)}</td>
-                        <td style={S.td}>{txs.length}</td>
-                        <td style={S.td}>{fmtBRL(txs.length?c.value/txs.length:0)}</td>
-                        <td style={S.td}>{c.pct.toFixed(1)}%</td>
-                      </tr>;
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>}
+            </>;
+          })()}
 
           {/* ══ RECORRÊNCIAS ══ */}
           {activeTab===3&&<>
@@ -1277,11 +1374,11 @@ export default function LumenApp() {
             <p style={S.pS}>Histórico completo de movimentações · clique na categoria para editar</p>
             <div style={S.fRow}>
               <input placeholder="Buscar na descrição..." style={S.fSearch} value={searchTx} onChange={e=>setSearchTx(e.target.value)}/>
-              <select style={S.fSel} value={sortTx} onChange={e=>setSortTx(e.target.value)}>
-                <option value="data_desc">Data (mais recente)</option>
-                <option value="data_asc">Data (mais antiga)</option>
-                <option value="valor_desc">Valor (maior)</option>
-                <option value="valor_asc">Valor (menor)</option>
+              <select style={{...S.fSel,color:"#c8c8c8",fontWeight:500}} value={sortTx} onChange={e=>setSortTx(e.target.value)}>
+                <option value="data_desc" style={{background:"#141414"}}>📅 Data (mais recente)</option>
+                <option value="data_asc"  style={{background:"#141414"}}>📅 Data (mais antiga)</option>
+                <option value="valor_desc" style={{background:"#141414"}}>💸 Maior valor</option>
+                <option value="valor_asc"  style={{background:"#141414"}}>💸 Menor valor</option>
               </select>
               {Object.keys(catOverrides).length>0&&(
                 <button style={{...S.dlBtn,color:"#f87171",borderColor:"rgba(248,113,113,0.3)"}}
