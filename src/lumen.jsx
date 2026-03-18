@@ -337,40 +337,59 @@ const monthLabel = key => {
 // ═══════════════════════════════════════════════════════════════
 // MINI CHARTS
 // ═══════════════════════════════════════════════════════════════
-function Sparkline({data, labels, color="#6ee7b7", height=100}) {
+// ── Tooltip helper ──────────────────────────────────────────
+function Tooltip({x, y, lines, color, W, H}) {
+  const TW=170, TH=16+lines.length*20, PAD=10;
+  // evita sair pelas bordas
+  const tx = Math.min(Math.max(x - TW/2, PAD), W - TW - PAD);
+  const ty = y - TH - 12 < PAD ? y + 16 : y - TH - 12;
+  return (
+    <g style={{pointerEvents:"none"}}>
+      <rect x={tx} y={ty} width={TW} height={TH} rx="6"
+        fill="#141414" stroke={color} strokeOpacity="0.5" strokeWidth="1"
+        filter="url(#tshadow)"/>
+      {lines.map((l,i)=>(
+        <text key={i} x={tx+TW/2} y={ty+14+i*20}
+          textAnchor="middle" fontSize="11" fontWeight={i===0?"700":"400"}
+          fill={i===0?color:"#aaa"} fontFamily="DM Sans,sans-serif">{l}</text>
+      ))}
+    </g>
+  );
+}
+
+function Sparkline({data, labels, color="#6ee7b7", height=100, fmt}) {
+  const [hov, setHov] = useState(null); // index hovered
   if(!data||data.length<2) return null;
 
-  // Layout: margem esquerda para valores Y, margem inferior para labels X
   const ML=48, MR=12, MT=12, MB=28;
   const W=600, H=height+MT+MB;
-  const cW=W-ML-MR, cH=height-MT; // área do gráfico
+  const cW=W-ML-MR, cH=height-MT;
 
   const min=Math.min(...data), max=Math.max(...data), range=max-min||1;
-  // X: pontos igualmente espaçados, alinhados com os labels
   const xOf=i => ML + (i/(data.length-1))*cW;
   const yOf=v => MT + cH - ((v-min)/range)*cH*0.88;
 
   const pts=data.map((v,i)=>[xOf(i), yOf(v)]);
   const linePath=pts.map((p,i)=>`${i===0?"M":"L"}${p[0]},${p[1]}`).join(" ");
   const areaPath=`${linePath} L${xOf(data.length-1)},${MT+cH} L${xOf(0)},${MT+cH} Z`;
-
   const id=`sg${color.replace(/[^a-z0-9]/gi,"")}${height}`;
-
-  // Grid horizontal: 4 linhas
   const gridLines=4;
   const gridVals=Array.from({length:gridLines+1},(_,i)=>min+(range/gridLines)*i);
-
-  // Decide quantos labels mostrar (máx ~12 para não sobrepor)
   const maxLabels=12;
   const step=Math.ceil((labels||[]).length/maxLabels);
 
+  const formatVal = v => fmt ? fmt(v) : v>=1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(1);
+
   return(
-    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:H,display:"block"}}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:H,display:"block",cursor:"crosshair"}}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.2"/>
           <stop offset="100%" stopColor={color} stopOpacity="0"/>
         </linearGradient>
+        <filter id="tshadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.5"/>
+        </filter>
       </defs>
 
       {/* Grid horizontal */}
@@ -386,7 +405,7 @@ function Sparkline({data, labels, color="#6ee7b7", height=100}) {
         );
       })}
 
-      {/* Grid vertical + labels X — alinhados com os pontos */}
+      {/* Grid vertical + labels X */}
       {(labels||[]).map((l,i)=>{
         if(i%step!==0 && i!==labels.length-1) return null;
         const x=xOf(i);
@@ -398,21 +417,56 @@ function Sparkline({data, labels, color="#6ee7b7", height=100}) {
         );
       })}
 
-      {/* Área preenchida */}
-      <path d={areaPath} fill={`url(#${id})`}/>
+      {/* Crosshair vertical no hover */}
+      {hov!==null && (
+        <line x1={pts[hov][0]} y1={MT} x2={pts[hov][0]} y2={MT+cH}
+          stroke={color} strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 3"/>
+      )}
 
-      {/* Linha */}
+      <path d={areaPath} fill={`url(#${id})`}/>
       <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
 
-      {/* Pontos */}
+      {/* Pontos — aumentam no hover */}
       {pts.map((p,i)=>(
-        <circle key={i} cx={p[0]} cy={p[1]} r="3" fill={color} stroke="#0c0c0c" strokeWidth="1.5"/>
+        <circle key={i} cx={p[0]} cy={p[1]}
+          r={hov===i ? 6 : 3}
+          fill={hov===i ? color : color}
+          stroke={hov===i ? "#0c0c0c" : "#0c0c0c"}
+          strokeWidth={hov===i ? 2 : 1.5}
+          style={{transition:"r 0.1s ease", cursor:"pointer"}}
+          onMouseEnter={()=>setHov(i)}
+          onMouseLeave={()=>setHov(null)}
+        />
       ))}
+
+      {/* Área invisível para capturar hover entre pontos */}
+      {pts.map((p,i)=>(
+        <rect key={`h${i}`}
+          x={i===0 ? p[0]-20 : (pts[i-1][0]+p[0])/2}
+          y={MT} width={i===0 ? 40 : (i===pts.length-1 ? p[0]-(pts[i-1][0]+p[0])/2+20 : (p[0]-(pts[i-1][0]+p[0])/2)*2)}
+          height={cH} fill="transparent"
+          onMouseEnter={()=>setHov(i)}
+          onMouseLeave={()=>setHov(null)}
+        />
+      ))}
+
+      {/* Tooltip */}
+      {hov!==null && (
+        <Tooltip
+          x={pts[hov][0]} y={pts[hov][1]}
+          color={color} W={W} H={H}
+          lines={[
+            formatVal(data[hov]),
+            labels?.[hov] || `Ponto ${hov+1}`
+          ]}
+        />
+      )}
     </svg>
   );
 }
 
-function BarChart({data,labels,colors,height=150}) {
+function BarChart({data,labels,colors,height=150,fmt}) {
+  const [hov,setHov]=useState(null);
   if(!data||!data.length) return null;
   const MB=labels?22:0, MT=8;
   const W=600, H=height+MB;
@@ -423,8 +477,15 @@ function BarChart({data,labels,colors,height=150}) {
   const gap=4, bw=(cW-gap*(n+1))/n;
   const maxLabels=14;
   const step=Math.ceil(n/maxLabels);
+  const formatVal = v => fmt ? fmt(v) : v>=1000 ? `${(v/1000).toFixed(1)}k` : String(v.toFixed(1));
+
   return(
-    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:H,display:"block"}}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:H,display:"block",cursor:"pointer"}}>
+      <defs>
+        <filter id="tshadow2" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.5"/>
+        </filter>
+      </defs>
       {/* Grid horizontal */}
       {[0.25,0.5,0.75,1].map(f=>{
         const y=MT+cH-(f*cH*0.92);
@@ -435,20 +496,40 @@ function BarChart({data,labels,colors,height=150}) {
         const x=ML+gap+i*(bw+gap);
         const cx=x+bw/2;
         const c=Array.isArray(colors)?colors[i%colors.length]:(colors||"#6ee7b7");
+        const isHov=hov===i;
         return(
-          <g key={i}>
-            <rect x={x} y={MT+cH-bh} width={bw} height={bh} fill={c} opacity="0.85" rx="2"/>
+          <g key={i}
+            onMouseEnter={()=>setHov(i)}
+            onMouseLeave={()=>setHov(null)}
+            style={{cursor:"pointer"}}>
+            <rect x={x} y={MT+cH-bh} width={bw} height={bh}
+              fill={c} opacity={isHov?1:0.75} rx="2"
+              style={{transition:"opacity 0.1s"}}/>
+            {/* Área de hover invisível cobrindo coluna inteira */}
+            <rect x={x} y={MT} width={bw} height={cH} fill="transparent"/>
             {labels&&i%step===0&&(
-              <text x={cx} y={H-4} textAnchor="middle" fontSize="9" fill="#404040" fontFamily="DM Sans,sans-serif">{labels[i]}</text>
+              <text x={cx} y={H-4} textAnchor="middle" fontSize="9"
+                fill={isHov?"#888":"#404040"} fontFamily="DM Sans,sans-serif">{labels[i]}</text>
             )}
           </g>
         );
       })}
+      {/* Tooltip */}
+      {hov!==null && (()=>{
+        const i=hov;
+        const x=ML+gap+i*(bw+gap)+bw/2;
+        const bh=(Math.abs(data[i].value)/max)*cH*0.92;
+        const y=MT+cH-bh;
+        const c=Array.isArray(colors)?colors[i%colors.length]:(colors||"#6ee7b7");
+        return <Tooltip x={x} y={y} color={c} W={W} H={H}
+          lines={[formatVal(data[i].value), labels?.[i]||`Item ${i+1}`]}/>;
+      })()}
     </svg>
   );
 }
 
-function DonutChart({data,colors}) {
+function DonutChart({data,colors,fmt}) {
+  const [hov,setHov]=useState(null);
   if(!data.length) return null;
   const total=data.reduce((s,d)=>s+d.value,0);
   const r=68,cx=88,cy=88,W=176;
@@ -458,12 +539,48 @@ function DonutChart({data,colors}) {
     const pct=d.value/total,ang=pct*360,s=cum;cum+=ang;
     const x1=cx+r*Math.cos(toR(s)),y1=cy+r*Math.sin(toR(s));
     const x2=cx+r*Math.cos(toR(s+ang)),y2=cy+r*Math.sin(toR(s+ang));
-    return{path:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${ang>180?1:0},1 ${x2},${y2} Z`,color:colors[i%colors.length]};
+    // ponto central da fatia para tooltip
+    const midA=s+ang/2;
+    const tx=cx+(r*0.65)*Math.cos(toR(midA));
+    const ty=cy+(r*0.65)*Math.sin(toR(midA));
+    return{path:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${ang>180?1:0},1 ${x2},${y2} Z`,
+      color:colors[i%colors.length], label:d.label, value:d.value, pct, tx, ty};
   });
+  const formatVal = v => fmt ? fmt(v) : v>=1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(1);
+  const hovSlice = hov!==null ? slices[hov] : null;
+
   return(
-    <svg viewBox={`0 0 ${W} ${W}`} style={{width:"100%",maxWidth:176}}>
-      {slices.map((s,i)=><path key={i} d={s.path} fill={s.color} opacity="0.9"/>)}
-      <circle cx={cx} cy={cy} r={r-28} fill="#0a0a0a"/>
+    <svg viewBox={`0 0 ${W} ${W}`} style={{width:"100%",maxWidth:176,cursor:"pointer",overflow:"visible"}}>
+      <defs>
+        <filter id="tshadow3" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.5"/>
+        </filter>
+      </defs>
+      {slices.map((s,i)=>(
+        <path key={i} d={s.path} fill={s.color}
+          opacity={hov===null?0.9:hov===i?1:0.45}
+          transform={hov===i?`translate(${Math.cos(toR(cum))*0},0)`:undefined}
+          style={{transition:"opacity 0.15s", outline:"none"}}
+          onMouseEnter={()=>setHov(i)}
+          onMouseLeave={()=>setHov(null)}/>
+      ))}
+      <circle cx={cx} cy={cy} r={r-28} fill="#0a0a0a"
+        onMouseEnter={()=>setHov(null)}/>
+      {/* Label central no hover */}
+      {hovSlice && (
+        <>
+          <text x={cx} y={cy-6} textAnchor="middle" fontSize="9" fill={hovSlice.color}
+            fontFamily="DM Sans,sans-serif" fontWeight="700">{hovSlice.label}</text>
+          <text x={cx} y={cy+8} textAnchor="middle" fontSize="10" fill="#f0ebe4"
+            fontFamily="DM Sans,sans-serif" fontWeight="800">
+            {(hovSlice.pct*100).toFixed(1)}%
+          </text>
+          <text x={cx} y={cy+20} textAnchor="middle" fontSize="8" fill="#666"
+            fontFamily="DM Sans,sans-serif">
+            {fmt?fmt(hovSlice.value):formatVal(hovSlice.value)}
+          </text>
+        </>
+      )}
     </svg>
   );
 }
@@ -862,11 +979,11 @@ export default function LumenApp() {
             <div style={S.g2} className="lg2">
               <div style={S.card}>
                 <div style={S.cT}>Gastos por mês</div>
-                <BarChart data={byMonth.map(m=>({value:m.gastos}))} labels={byMonth.map(m=>m.label)} colors={["#f87171"]} height={130}/>
+                <BarChart data={byMonth.map(m=>({value:m.gastos}))} labels={byMonth.map(m=>m.label)} colors={["#f87171"]} height={130} fmt={fmtBRL}/>
               </div>
               <div style={S.card}>
                 <div style={S.cT}>Saldo líquido por mês</div>
-                <BarChart data={byMonth.map(m=>({value:m.entradas-m.gastos}))} labels={byMonth.map(m=>m.label)} colors={byMonth.map(m=>m.entradas-m.gastos>=0?"#6ee7b7":"#f87171")} height={130}/>
+                <BarChart data={byMonth.map(m=>({value:m.entradas-m.gastos}))} labels={byMonth.map(m=>m.label)} colors={byMonth.map(m=>m.entradas-m.gastos>=0?"#6ee7b7":"#f87171")} height={130} fmt={fmtBRL}/>
               </div>
             </div>
           </>}
@@ -878,11 +995,11 @@ export default function LumenApp() {
             <div style={S.g2} className="lg2">
               <div style={S.card}>
                 <div style={S.cT}>Gastos mensais</div>
-                <Sparkline data={byMonth.map(m=>m.gastos)} labels={byMonth.map(m=>m.label)} color="#f87171" height={100}/>
+                <Sparkline data={byMonth.map(m=>m.gastos)} labels={byMonth.map(m=>m.label)} color="#f87171" height={100} fmt={fmtBRL}/>
               </div>
               <div style={S.card}>
                 <div style={S.cT}>Entradas mensais</div>
-                <Sparkline data={byMonth.map(m=>m.entradas)} labels={byMonth.map(m=>m.label)} color="#6ee7b7" height={100}/>
+                <Sparkline data={byMonth.map(m=>m.entradas)} labels={byMonth.map(m=>m.label)} color="#6ee7b7" height={100} fmt={fmtBRL}/>
               </div>
             </div>
             <div style={{...S.card,marginBottom:16}}>
@@ -922,7 +1039,7 @@ export default function LumenApp() {
               <div style={S.card}>
                 <div style={S.cT}>Distribuição</div>
                 <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
-                  <DonutChart data={byCategoria.slice(0,10)} colors={CAT_COLORS}/>
+                  <DonutChart data={byCategoria.slice(0,10)} colors={CAT_COLORS} fmt={fmtBRL}/>
                 </div>
                 {byCategoria.map((c,i)=>(
                   <div key={c.label} style={S.legI}>
