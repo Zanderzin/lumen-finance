@@ -1,4 +1,4 @@
-# 💡 Lumen Finance
+# 💡 Lumen 
 
 > Dashboard financeiro pessoal para análise inteligente de extratos do Banco Inter.
 
