@@ -492,6 +492,7 @@ const CAT_COLORS=["#6ee7b7","#60a5fa","#f472b6","#fb923c","#a78bfa","#facc15","#
 const GLOBAL_CSS=`
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:17px;}
 body,html{background:#080808;}
 input,select,button,textarea{font-family:'DM Sans',sans-serif;}
 ::-webkit-scrollbar{width:5px;height:5px;}
@@ -499,6 +500,23 @@ input,select,button,textarea{font-family:'DM Sans',sans-serif;}
 ::-webkit-scrollbar-thumb{background:#1c1c1c;border-radius:3px;}
 .ltr:hover td{background:rgba(255,255,255,0.013)!important;}
 .hcard:hover{border-color:rgba(110,231,183,0.18)!important;transform:translateY(-2px);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+@keyframes dashIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.anim-fadeup{animation:fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both;}
+.anim-fadein{animation:fadeIn 0.4s ease both;}
+.anim-dash{animation:dashIn 0.5s cubic-bezier(0.22,1,0.36,1) both;}
+.anim-kpi>*{animation:fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both;}
+.anim-kpi>*:nth-child(1){animation-delay:0.05s;}
+.anim-kpi>*:nth-child(2){animation-delay:0.1s;}
+.anim-kpi>*:nth-child(3){animation-delay:0.15s;}
+.anim-kpi>*:nth-child(4){animation-delay:0.2s;}
+.anim-kpi>*:nth-child(5){animation-delay:0.25s;}
+.anim-kpi>*:nth-child(6){animation-delay:0.3s;}
+.anim-kpi>*:nth-child(7){animation-delay:0.35s;}
+.anim-kpi>*:nth-child(8){animation-delay:0.4s;}
 @media(max-width:860px){
   .lsidebar{display:none!important;}
   .lmain{padding:24px 16px!important;}
@@ -510,70 +528,70 @@ input,select,button,textarea{font-family:'DM Sans',sans-serif;}
 const S={
   app:{minHeight:"100vh",background:"#080808",color:"#f0ebe4",fontFamily:"'DM Sans',sans-serif"},
   nav:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"22px 52px",borderBottom:"1px solid rgba(255,255,255,0.05)",position:"sticky",top:0,background:"rgba(8,8,8,0.95)",backdropFilter:"blur(20px)",zIndex:100},
-  logo:{fontSize:"1.2rem",fontWeight:800,letterSpacing:"-0.03em",color:"#f0ebe4"},
+  logo:{fontSize:"1.3rem",fontWeight:800,letterSpacing:"-0.03em",color:"#f0ebe4"},
   dot:{color:"#6ee7b7"},
-  pill:{background:"#6ee7b7",color:"#080808",border:"none",borderRadius:100,padding:"8px 18px",fontWeight:700,fontSize:"0.8rem",cursor:"pointer"},
+  pill:{background:"#6ee7b7",color:"#080808",border:"none",borderRadius:100,padding:"10px 22px",fontWeight:700,fontSize:"0.88rem",cursor:"pointer"},
   // Hero
   hero:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"86vh",padding:"0 24px",textAlign:"center"},
-  eyebrow:{fontSize:"0.68rem",fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"#6ee7b7",marginBottom:18},
+  eyebrow:{fontSize:"0.75rem",fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"#6ee7b7",marginBottom:18},
   h1:{fontSize:"clamp(3rem,8vw,6rem)",fontWeight:800,letterSpacing:"-0.04em",lineHeight:1.02,margin:"0 0 18px",background:"linear-gradient(135deg,#f0ebe4 0%,#666 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"},
-  sub:{fontSize:"1rem",color:"#555",maxWidth:460,lineHeight:1.65,margin:"0 0 48px"},
+  sub:{fontSize:"1.1rem",color:"#555",maxWidth:460,lineHeight:1.65,margin:"0 0 48px"},
   zone:{border:"1px solid rgba(110,231,183,0.22)",borderRadius:18,padding:"50px 68px",maxWidth:520,width:"100%",cursor:"pointer",transition:"all 0.2s",background:"rgba(110,231,183,0.02)"},
   zoneH:{border:"1px solid rgba(110,231,183,0.55)",background:"rgba(110,231,183,0.06)"},
   // Dash
-  dash:{display:"flex",minHeight:"calc(100vh - 69px)"},
-  sidebar:{width:258,minWidth:258,borderRight:"1px solid rgba(255,255,255,0.05)",padding:"32px 22px",display:"flex",flexDirection:"column",gap:26,background:"#080808",position:"sticky",top:69,height:"calc(100vh - 69px)",overflowY:"auto"},
-  sLbl:{fontSize:"0.6rem",fontWeight:700,letterSpacing:"0.13em",textTransform:"uppercase",color:"#343434",marginBottom:8},
-  fInp:{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"8px 12px",color:"#f0ebe4",fontSize:"0.8rem",width:"100%",outline:"none"},
-  chkR:{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:3},
-  chkB:{width:14,height:14,borderRadius:3,border:"1px solid rgba(255,255,255,0.13)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"},
+  dash:{display:"flex",minHeight:"calc(100vh - 73px)"},
+  sidebar:{width:272,minWidth:272,borderRight:"1px solid rgba(255,255,255,0.05)",padding:"36px 26px",display:"flex",flexDirection:"column",gap:28,background:"#080808",position:"sticky",top:73,height:"calc(100vh - 73px)",overflowY:"auto"},
+  sLbl:{fontSize:"0.68rem",fontWeight:700,letterSpacing:"0.13em",textTransform:"uppercase",color:"#343434",marginBottom:9},
+  fInp:{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",color:"#f0ebe4",fontSize:"0.88rem",width:"100%",outline:"none"},
+  chkR:{display:"flex",alignItems:"center",gap:9,cursor:"pointer",marginBottom:5},
+  chkB:{width:16,height:16,borderRadius:4,border:"1px solid rgba(255,255,255,0.13)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"},
   chkBA:{background:"#6ee7b7",border:"1px solid #6ee7b7"},
-  chkL:{fontSize:"0.76rem",color:"#505050",transition:"color 0.15s"},
+  chkL:{fontSize:"0.85rem",color:"#505050",transition:"color 0.15s"},
   chkLA:{color:"#c0c0c0"},
-  sBtn:{background:"transparent",border:"1px solid rgba(255,255,255,0.07)",borderRadius:6,padding:"4px 9px",color:"#404040",fontSize:"0.65rem",cursor:"pointer"},
+  sBtn:{background:"transparent",border:"1px solid rgba(255,255,255,0.07)",borderRadius:7,padding:"5px 11px",color:"#404040",fontSize:"0.72rem",cursor:"pointer"},
   // Main
-  main:{flex:1,padding:"40px 48px",overflow:"hidden",minWidth:0},
-  pT:{fontSize:"clamp(1.6rem,3vw,2.4rem)",fontWeight:800,letterSpacing:"-0.04em",marginBottom:6},
-  pS:{fontSize:"0.82rem",color:"#404040",marginBottom:40},
+  main:{flex:1,padding:"44px 56px",overflow:"hidden",minWidth:0},
+  pT:{fontSize:"clamp(1.8rem,3vw,2.6rem)",fontWeight:800,letterSpacing:"-0.04em",marginBottom:8},
+  pS:{fontSize:"0.9rem",color:"#404040",marginBottom:44},
   // Tabs
-  tabs:{display:"flex",gap:2,marginBottom:32,borderBottom:"1px solid rgba(255,255,255,0.05)",overflowX:"auto",msOverflowStyle:"none",scrollbarWidth:"none"},
-  tab:{padding:"10px 16px",background:"transparent",border:"none",color:"#444",fontSize:"0.8rem",fontWeight:500,cursor:"pointer",borderBottom:"2px solid transparent",marginBottom:-1,whiteSpace:"nowrap",transition:"all 0.15s"},
+  tabs:{display:"flex",gap:2,marginBottom:36,borderBottom:"1px solid rgba(255,255,255,0.05)",overflowX:"auto",msOverflowStyle:"none",scrollbarWidth:"none"},
+  tab:{padding:"12px 20px",background:"transparent",border:"none",color:"#444",fontSize:"0.9rem",fontWeight:500,cursor:"pointer",borderBottom:"2px solid transparent",marginBottom:-1,whiteSpace:"nowrap",transition:"all 0.15s"},
   tabA:{color:"#f0ebe4",borderBottom:"2px solid #6ee7b7"},
   // KPI
-  kpiG:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12,marginBottom:40},
-  kpiC:{background:"#0c0c0c",border:"1px solid rgba(255,255,255,0.05)",borderRadius:13,padding:"22px 18px",transition:"all 0.2s",cursor:"default"},
-  kpiL:{fontSize:"0.6rem",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#353535",marginBottom:10},
-  kpiV:{fontSize:"1.65rem",fontWeight:800,letterSpacing:"-0.03em",color:"#f0ebe4",lineHeight:1},
-  kpiD:{fontSize:"0.7rem",marginTop:7},
+  kpiG:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:14,marginBottom:44},
+  kpiC:{background:"#0c0c0c",border:"1px solid rgba(255,255,255,0.05)",borderRadius:14,padding:"26px 22px",transition:"all 0.2s",cursor:"default"},
+  kpiL:{fontSize:"0.68rem",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#353535",marginBottom:12},
+  kpiV:{fontSize:"1.85rem",fontWeight:800,letterSpacing:"-0.03em",color:"#f0ebe4",lineHeight:1},
+  kpiD:{fontSize:"0.78rem",marginTop:8},
   kPos:{color:"#6ee7b7"},kNeg:{color:"#f87171"},kNeu:{color:"#505050"},
   // Card
-  card:{background:"#0c0c0c",border:"1px solid rgba(255,255,255,0.05)",borderRadius:13,padding:"22px",overflow:"hidden",transition:"all 0.2s"},
-  cT:{fontSize:"0.6rem",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#353535",marginBottom:18},
-  g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16},
-  g13:{display:"grid",gridTemplateColumns:"1.2fr 2fr",gap:14,marginBottom:16},
+  card:{background:"#0c0c0c",border:"1px solid rgba(255,255,255,0.05)",borderRadius:14,padding:"26px",overflow:"hidden",transition:"all 0.2s"},
+  cT:{fontSize:"0.68rem",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#353535",marginBottom:20},
+  g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:18},
+  g13:{display:"grid",gridTemplateColumns:"1.2fr 2fr",gap:16,marginBottom:18},
   // Table
   tbl:{width:"100%",borderCollapse:"collapse"},
-  th:{fontSize:"0.58rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#303030",textAlign:"left",padding:"0 12px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)"},
+  th:{fontSize:"0.66rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#303030",textAlign:"left",padding:"0 14px 14px",borderBottom:"1px solid rgba(255,255,255,0.05)"},
   tr:{borderBottom:"1px solid rgba(255,255,255,0.03)"},
-  td:{padding:"11px 12px",fontSize:"0.8rem",color:"#606060"},
-  tdM:{padding:"11px 12px",fontSize:"0.8rem",color:"#c8c8c8",fontWeight:500},
-  badge:{display:"inline-block",padding:"2px 8px",borderRadius:100,fontSize:"0.64rem",fontWeight:600,background:"rgba(110,231,183,0.09)",color:"#6ee7b7"},
-  barH:{display:"flex",justifyContent:"space-between",marginBottom:5},
-  barL:{fontSize:"0.76rem",color:"#808080"},
-  barV:{fontSize:"0.76rem",color:"#f0ebe4",fontWeight:600},
-  barT:{height:3,background:"rgba(255,255,255,0.05)",borderRadius:4,marginBottom:13},
-  barF:{height:3,borderRadius:4},
-  legI:{display:"flex",alignItems:"center",gap:7,marginBottom:7},
-  legD:{width:7,height:7,borderRadius:"50%",flexShrink:0},
-  legL:{fontSize:"0.72rem",color:"#707070"},
-  legV:{fontSize:"0.72rem",color:"#f0ebe4",fontWeight:600,marginLeft:"auto"},
-  iGrid:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16},
-  iCard:{borderRadius:11,padding:"16px 18px",borderLeft:"3px solid",background:"rgba(255,255,255,0.016)"},
-  iText:{fontSize:"0.8rem",color:"#888",lineHeight:1.65},
-  fRow:{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"},
-  fSearch:{flex:1,minWidth:160,background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"8px 13px",color:"#f0ebe4",fontSize:"0.8rem",outline:"none"},
-  fSel:{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"8px 13px",color:"#f0ebe4",fontSize:"0.8rem",outline:"none"},
-  dlBtn:{background:"rgba(110,231,183,0.07)",border:"1px solid rgba(110,231,183,0.16)",borderRadius:8,padding:"8px 16px",color:"#6ee7b7",fontSize:"0.8rem",fontWeight:600,cursor:"pointer"},
+  td:{padding:"13px 14px",fontSize:"0.88rem",color:"#606060"},
+  tdM:{padding:"13px 14px",fontSize:"0.88rem",color:"#c8c8c8",fontWeight:500},
+  badge:{display:"inline-block",padding:"3px 10px",borderRadius:100,fontSize:"0.72rem",fontWeight:600,background:"rgba(110,231,183,0.09)",color:"#6ee7b7"},
+  barH:{display:"flex",justifyContent:"space-between",marginBottom:6},
+  barL:{fontSize:"0.84rem",color:"#808080"},
+  barV:{fontSize:"0.84rem",color:"#f0ebe4",fontWeight:600},
+  barT:{height:4,background:"rgba(255,255,255,0.05)",borderRadius:4,marginBottom:15},
+  barF:{height:4,borderRadius:4},
+  legI:{display:"flex",alignItems:"center",gap:8,marginBottom:9},
+  legD:{width:8,height:8,borderRadius:"50%",flexShrink:0},
+  legL:{fontSize:"0.82rem",color:"#707070"},
+  legV:{fontSize:"0.82rem",color:"#f0ebe4",fontWeight:600,marginLeft:"auto"},
+  iGrid:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18},
+  iCard:{borderRadius:12,padding:"18px 22px",borderLeft:"3px solid",background:"rgba(255,255,255,0.016)"},
+  iText:{fontSize:"0.88rem",color:"#888",lineHeight:1.65},
+  fRow:{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"},
+  fSearch:{flex:1,minWidth:160,background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",color:"#f0ebe4",fontSize:"0.88rem",outline:"none"},
+  fSel:{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",color:"#f0ebe4",fontSize:"0.88rem",outline:"none"},
+  dlBtn:{background:"rgba(110,231,183,0.07)",border:"1px solid rgba(110,231,183,0.16)",borderRadius:9,padding:"10px 18px",color:"#6ee7b7",fontSize:"0.88rem",fontWeight:600,cursor:"pointer"},
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -583,6 +601,8 @@ export default function LumenApp() {
   const [data,setData]=useState(null);
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [loadingStep,setLoadingStep]=useState(0);
+  const [showDash,setShowDash]=useState(false);
   const [hover,setHover]=useState(false);
   const [activeTab,setActiveTab]=useState(0);
   const [filterDe,setFilterDe]=useState("");
@@ -599,20 +619,33 @@ export default function LumenApp() {
     const reader=new FileReader();
     reader.onload=e=>{
       try {
-        const {rows}=loadCSV(e.target.result);
-        if(!rows.length) throw new Error("Nenhuma linha encontrada após o cabeçalho.");
-        const processed=preprocess(rows);
-        if(!processed.length) throw new Error("Não foi possível interpretar os dados. Verifique o formato do arquivo.");
-        const withCat=processed.map(r=>({...r,categoria:categorizarTransacao(r.descricao)}));
-        setData(withCat);
-        const allC=[...new Set(withCat.map(r=>r.categoria))].sort();
-        setFilterCats(allC);
-        const dates=withCat.map(r=>r.data).sort((a,b)=>a-b);
-        setFilterDe(dates[0].toISOString().split("T")[0]);
-        setFilterAte(dates[dates.length-1].toISOString().split("T")[0]);
-        setActiveTab(0);
-      } catch(err){setError(err.message);}
-      setLoading(false);
+        setLoadingStep(1);
+        setTimeout(()=>{
+          try{
+            const {rows}=loadCSV(e.target.result);
+            if(!rows.length) throw new Error("Nenhuma linha encontrada após o cabeçalho.");
+            setLoadingStep(2);
+            setTimeout(()=>{
+              try{
+                const processed=preprocess(rows);
+                if(!processed.length) throw new Error("Não foi possível interpretar os dados. Verifique o formato do arquivo.");
+                setLoadingStep(3);
+                setTimeout(()=>{
+                  const withCat=processed.map(r=>({...r,categoria:categorizarTransacao(r.descricao)}));
+                  const allC=[...new Set(withCat.map(r=>r.categoria))].sort();
+                  setFilterCats(allC);
+                  const dates=withCat.map(r=>r.data).sort((a,b)=>a-b);
+                  setFilterDe(dates[0].toISOString().split("T")[0]);
+                  setFilterAte(dates[dates.length-1].toISOString().split("T")[0]);
+                  setActiveTab(0);
+                  setLoadingStep(4);
+                  setTimeout(()=>{ setData(withCat); setShowDash(false); requestAnimationFrame(()=>setShowDash(true)); setLoading(false); setLoadingStep(0); },500);
+                },600);
+              }catch(err){setError(err.message);setLoading(false);setLoadingStep(0);}
+            },700);
+          }catch(err){setError(err.message);setLoading(false);setLoadingStep(0);}
+        },400);
+      } catch(err){setError(err.message);setLoading(false);setLoadingStep(0);}
     };
     reader.onerror=()=>{setError("Erro ao ler o arquivo.");setLoading(false);};
     reader.readAsText(file,"utf-8");
@@ -695,20 +728,57 @@ export default function LumenApp() {
         <p style={S.eyebrow}>Dashboard Financeiro Pessoal</p>
         <h1 style={S.h1}>Seu dinheiro,<br/>mais claro.</h1>
         <p style={S.sub}>Faça upload do extrato do Banco Inter e obtenha uma análise completa das suas finanças em segundos.</p>
-        <div
-          style={{...S.zone,...(hover?S.zoneH:{})}}
-          onDragOver={e=>{e.preventDefault();setHover(true);}}
-          onDragLeave={()=>setHover(false)}
-          onDrop={onDrop}
-          onClick={()=>fileRef.current.click()}
-        >
-          <input ref={fileRef} type="file" accept=".csv" style={{display:"none"}} onChange={e=>processFile(e.target.files[0])}/>
-          <div style={{fontSize:"2rem",marginBottom:12}}>{loading?"⏳":"📂"}</div>
-          <div style={{fontSize:"0.95rem",fontWeight:600,marginBottom:8,color:"#f0ebe4"}}>{loading?"Processando...":"Arraste o CSV ou clique para selecionar"}</div>
-          <div style={{fontSize:"0.8rem",color:"#404040"}}>Extrato do app Banco Inter · formato .csv</div>
-        </div>
-        {error&&<p style={{marginTop:14,fontSize:"0.8rem",color:"#f87171",maxWidth:460,textAlign:"center"}}>{error}</p>}
-        <p style={{marginTop:18,fontSize:"0.68rem",color:"#252525"}}>Nenhum dado é enviado a servidores. Tudo é processado localmente no seu navegador.</p>
+        {loading ? (
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:32,animation:"fadeIn 0.3s ease"}}>
+            {/* Spinner */}
+            <div style={{position:"relative",width:80,height:80}}>
+              <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"2px solid rgba(110,231,183,0.1)"}}/>
+              <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"2px solid transparent",borderTopColor:"#6ee7b7",animation:"spin 0.9s linear infinite"}}/>
+              <div style={{position:"absolute",inset:8,borderRadius:"50%",border:"2px solid transparent",borderTopColor:"rgba(110,231,183,0.4)",animation:"spin 1.4s linear infinite reverse"}}/>
+              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.5rem"}}>💡</div>
+            </div>
+            {/* Steps */}
+            <div style={{display:"flex",flexDirection:"column",gap:12,width:300}}>
+              {[
+                [1,"Lendo o arquivo CSV"],
+                [2,"Processando transações"],
+                [3,"Categorizando gastos"],
+                [4,"Gerando análises"],
+              ].map(([step,label])=>{
+                const done=loadingStep>step, active=loadingStep===step;
+                return(
+                  <div key={step} style={{display:"flex",alignItems:"center",gap:12,opacity:done||active?1:0.25,transition:"opacity 0.3s"}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${done?"#6ee7b7":active?"#6ee7b7":"rgba(255,255,255,0.1)"}`,background:done?"#6ee7b7":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.3s"}}>
+                      {done
+                        ? <span style={{color:"#080808",fontSize:"0.65rem",fontWeight:900}}>✓</span>
+                        : active
+                        ? <div style={{width:8,height:8,borderRadius:"50%",background:"#6ee7b7",animation:"pulse 1s ease infinite"}}/>
+                        : null}
+                    </div>
+                    <span style={{fontSize:"0.88rem",color:done||active?"#f0ebe4":"#444",transition:"color 0.3s"}}>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div
+              style={{...S.zone,...(hover?S.zoneH:{})}}
+              onDragOver={e=>{e.preventDefault();setHover(true);}}
+              onDragLeave={()=>setHover(false)}
+              onDrop={onDrop}
+              onClick={()=>fileRef.current.click()}
+            >
+              <input ref={fileRef} type="file" accept=".csv" style={{display:"none"}} onChange={e=>processFile(e.target.files[0])}/>
+              <div style={{fontSize:"2rem",marginBottom:12}}>📂</div>
+              <div style={{fontSize:"0.95rem",fontWeight:600,marginBottom:8,color:"#f0ebe4"}}>Arraste o CSV ou clique para selecionar</div>
+              <div style={{fontSize:"0.8rem",color:"#404040"}}>Extrato do app Banco Inter · formato .csv</div>
+            </div>
+            {error&&<p style={{marginTop:14,fontSize:"0.8rem",color:"#f87171",maxWidth:460,textAlign:"center"}}>{error}</p>}
+            <p style={{marginTop:18,fontSize:"0.68rem",color:"#252525"}}>Nenhum dado é enviado a servidores. Tudo é processado localmente no seu navegador.</p>
+          </>
+        )}
       </div>
     </div>
   );
@@ -725,7 +795,7 @@ export default function LumenApp() {
         </div>
       </nav>
 
-      <div style={S.dash}>
+      <div style={{...S.dash,animation:showDash?"dashIn 0.5s cubic-bezier(0.22,1,0.36,1) both":"none"}} className="anim-fadein">
         {/* SIDEBAR */}
         <aside style={S.sidebar} className="lsidebar">
           <div>
@@ -771,7 +841,7 @@ export default function LumenApp() {
           {activeTab===0&&<>
             <h1 style={S.pT}>Visão Geral</h1>
             <p style={S.pS}>{dataMin&&dataMax?`${fmtDate(dataMin)} → ${fmtDate(dataMax)}`:"Período selecionado"}</p>
-            <div style={S.kpiG} className="lkpi">
+            <div style={S.kpiG} className="lkpi anim-kpi">
               {[
                 {l:"Total de Gastos",  v:fmtBRL(metricas.total_gastos),  d:`${metricas.variacao_gastos>0?"↑":"↓"} ${Math.abs(metricas.variacao_gastos).toFixed(1)}% vs período anterior`,neg:true},
                 {l:"Total de Entradas",v:fmtBRL(metricas.total_entradas), d:`${metricas.variacao_entradas>0?"↑":"↓"} ${Math.abs(metricas.variacao_entradas).toFixed(1)}% vs período anterior`,neg:false},
