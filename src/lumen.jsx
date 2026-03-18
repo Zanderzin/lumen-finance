@@ -165,77 +165,157 @@ function ehNomePessoa(texto) {
   return false;
 }
 
+// Palavras-chave com modo de matching:
+// { kw, exact } — exact=true exige palavra isolada (word boundary), evita falsos positivos
+// Por padrão (sem exact) usa substring simples
 const CATEGORIAS_KW = {
   "Alimentação": [
-    "ifood","quentinhas","sabor","macarons","nino","loucos por burger","biscoitos","rappi",
-    "bolos","uber eats","restaurante","lanchonete","padaria","dog","mcdonalds","mc donald",
-    "sucoetal","bacio","bauducco","lancheteria","benedito","veloce","creperia","pica-pau",
-    "marmitexleo","mercado","taguatinga","supermercado","acougue","hortifruti","pizza",
-    "burger","distribuidora","fini","casa do pao","pao","big box","burguer","imperio dos paes",
-    "bobs","subway","giraffas","outback","dominos","torta","dona","abbraccio","coco bambu",
-    "spoleto","habibs","leonardobianoda","american cookies","sorbe","cafe","bakery",
-    "pao de acucar","carrefour","extra","walmart","assai","luzia de fatima miranda","atacadao"
+    "ifood","rappi","uber eats","quentinhas","macarons","loucos por burger","biscoitos",
+    "bolos","restaurante","lanchonete","padaria","mcdonalds","mc donald","sucoetal",
+    "bacio","bauducco","lancheteria","benedito","veloce","creperia","pica-pau",
+    "marmitexleo","supermercado","acougue","hortifruti","pizza","burger","burguer",
+    "distribuidora","fini","casa do pao","big box","imperio dos paes","bobs","subway",
+    "giraffas","outback","dominos","torta","abbraccio","coco bambu","spoleto","habibs",
+    "leonardobianoda","american cookies","sorbe","bakery","pao de acucar","carrefour",
+    "atacadao","assai","walmart","taguatinga","mercadinho","mercadao","lancheria",
+    "sushi","churrascaria","bistrô","bistro","hamburgueria","tapioca","acai","sorvete",
+    "conveniencia","minimercado","mercearia","quitanda","emporio","delicatessen",
+    // palavras curtas só com word boundary
+    {kw:"pao", exact:true},
+    {kw:"cafe", exact:true},
+    {kw:"bar", exact:true},
+    {kw:"dog", exact:true},
+    {kw:"dona", exact:true},
+    {kw:"mercado", exact:true},
   ],
   "Transporte": [
-    "uber","iguatemi","car","combustiveis","estacionament","lyft","cabify","99","taxi",
-    "combustivel","gasolina","posto","park","parkshopping","petronorte","shell","boulevard",
-    "ipiranga","br petroleo","petrobras","gmcm","estacionamento","valet","onibus","metro",
-    "metrô","transporte","pedagio","viacard","carlos ieje de sena","sem parar"
+    "uber","lyft","cabify","99app","99 taxi","taxi","combustivel","combustiveis",
+    "gasolina","etanol","diesel","petronorte","shell","ipiranga","br petroleo","petrobras",
+    "posto shell","posto ipiranga","parkshopping","estacionamento","estacionament",
+    "sem parar","viacard","pedagio","transporte","onibus","metro","metrô","valet","gmcm",
+    "carlos ieje de sena","iguatemi",
+    // word boundary para evitar capturar nomes como "Carolina", "Park" em nomes próprios
+    {kw:"car", exact:true},
+    {kw:"park", exact:true},
+    {kw:"posto", exact:true},
+    {kw:"99", exact:true},
   ],
   "Moradia": [
-    "aluguel","condominio","iptu","luz","agua","gas","internet","telefone","neoenergia",
-    "caesb","correios","celpe","cemig","copel","light"
+    "aluguel","condominio","iptu","neoenergia","caesb","celpe","cemig","copel",
+    "sabesp","comgas","cosanpa","cagece","copasa","enel","energisa","equatorial",
+    {kw:"luz", exact:true},
+    {kw:"agua", exact:true},
+    {kw:"gas", exact:true},
+    {kw:"internet", exact:true},
+    {kw:"telefone", exact:true},
+    {kw:"light", exact:true},
+    {kw:"correios", exact:true},
   ],
   "Online": [
-    "amazon","mercado livre","magalu","magalupay","americanas","submarino","shoptime",
-    "casas bahia","netshoes","centauro","aliexpress","ebay","etsy","wish","shein",
-    "pagseguro international","zaful"
+    "mercado livre","magalupay","americanas","submarino","shoptime","casas bahia",
+    "aliexpress","ebay","etsy","wish","shein","pagseguro international","zaful","shopee",
+    "amazon","magalu","netshoes",
   ],
   "Mensalidades": [
-    "netflix","spotify","disney plus","hbo max","amazon prime","globoplay","fatura",
-    "youtube premium","tim","claro","vivo","oi","laricell","apple music","deezer",
-    "google drive","dropbox","icloud","one drive","adobe","canva","notion","evernote",
-    "slack","zoom","microsoft 365"
+    "netflix","spotify","disney plus","hbo max","amazon prime","globoplay",
+    "youtube premium","laricell","apple music","deezer","google drive","dropbox",
+    "icloud","one drive","adobe","notion","evernote","slack","zoom","microsoft 365",
+    "crunchyroll","paramount plus","apple tv","discovery plus","star plus",
+    {kw:"tim", exact:true},
+    {kw:"claro", exact:true},
+    {kw:"vivo", exact:true},
+    {kw:"oi", exact:true},
+    {kw:"canva", exact:true},
+    {kw:"fatura", exact:true},
   ],
   "Saúde": [
     "farmacia","drogaria","drogasil","pacheco","pague menos","hospital","clinica",
-    "laboratorio","medico","dentista","fisioterapia","plano de saude","unimed","amil",
-    "sulamerica","bradesco saude","advance fisioterapia"
+    "laboratorio","fisioterapia","plano de saude","unimed","amil","sulamerica",
+    "bradesco saude","advance fisioterapia","drogaria sp","ultrafarma","droga raia",
+    "hapvida","notre dame","gndi","mediservice","prevent senior",
+    {kw:"medico", exact:true},
+    {kw:"dentista", exact:true},
+    {kw:"optica", exact:true},
   ],
   "Educação": [
-    "escola","faculdade","universidade","curso","livro","livraria","material escolar",
-    "estacio","ceub","unieuro","edx","alura","iesb","projecao","udf","papelaria",
-    "udemy","coursera","kaplan","wizard","ccaa","cna","fisk"
+    "escola","faculdade","universidade","material escolar","estacio","ceub","unieuro",
+    "edx","alura","iesb","projecao","udf","papelaria","udemy","coursera","kaplan",
+    "wizard","ccaa","cna","fisk","descomplica","estrategia concursos","gran cursos",
+    {kw:"curso", exact:true},
+    {kw:"livro", exact:true},
+    {kw:"livraria", exact:true},
   ],
   "Lazer": [
-    "cinema","ciatoy","teatro","ri happy","ingresso","ticket","disney","hbo",
-    "entretenimento","globoplay","crunchyroll","paramount","steam","playstation","xbox",
-    "nintendo","game"
+    "ciatoy","ri happy","ingresso","entretenimento","globoplay","crunchyroll",
+    "paramount","steam","playstation","xbox","nintendo","cinemark","kinoplex",
+    "cinepolis","ingresso.com","ticketmaster","eventim","sympla",
+    {kw:"cinema", exact:true},
+    {kw:"teatro", exact:true},
+    {kw:"disney", exact:true},
+    {kw:"hbo", exact:true},
+    {kw:"game", exact:true},
+    {kw:"ticket", exact:true},
   ],
   "Vestuário": [
-    "renner","riachuelo","zara","hering","marisa","pernambucanas","magazine luiza",
-    "nike","adidas","decathlon","roupa","calcado","sapato"
+    "renner","riachuelo","pernambucanas","magazine luiza","zara","hering","marisa",
+    "decathlon","reserva","farm","arezzo","schutz","melissa","centauro","netshoes",
+    {kw:"nike", exact:true},
+    {kw:"adidas", exact:true},
+    {kw:"roupa", exact:true},
+    {kw:"calcado", exact:true},
+    {kw:"sapato", exact:true},
   ],
   "Serviços": [
-    "salao","barbearia","cabeleireiro","manicure","academia","smartfit","bluefit",
-    "bio ritmo","lavanderia","costureira","chaveiro","encanador","eletricista"
+    "barbearia","cabeleireiro","manicure","smartfit","bluefit","bio ritmo",
+    "lavanderia","costureira","chaveiro","encanador","eletricista","desentupidora",
+    "mecanica","oficina","borracharia","pet shop","petshop","veterinario","banho e tosa",
+    {kw:"salao", exact:true},
+    {kw:"academia", exact:true},
   ],
   "Investimentos": [
-    "investimento","aplicacao","poupanca","tesouro","cdb","lci","lca","lig liquidez","fundo"
+    "lig liquidez","tesouro direto","xp investimentos","nuinvest","rico investimentos",
+    "warren","inter invest","btg","genial","clear corretora",
+    {kw:"investimento", exact:true},
+    {kw:"aplicacao", exact:true},
+    {kw:"poupanca", exact:true},
+    {kw:"tesouro", exact:true},
+    {kw:"cdb", exact:true},
+    {kw:"lci", exact:true},
+    {kw:"lca", exact:true},
+    {kw:"fundo", exact:true},
   ],
 };
+
+// Normaliza string: minúsculo + sem acento
+function norm(s){ return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+
+// Testa keyword com ou sem word boundary
+function matchKW(text, kwEntry) {
+  if (typeof kwEntry === "string") {
+    return text.includes(norm(kwEntry));
+  }
+  // exact: testa como palavra isolada (não pode ter letra/número antes ou depois)
+  const kwn = norm(kwEntry.kw);
+  const re = new RegExp(`(?<![a-z0-9])${kwn.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}(?![a-z0-9])`);
+  return re.test(text);
+}
+
 const PALAVRAS_TRANSFERENCIA = ["pix","ted","doc","transferencia","recebido","enviado"];
 
 function categorizarTransacao(descricao) {
   if (!descricao) return "Outros";
-  const d = descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const d = norm(descricao);
+  // 1. Categorias específicas com matching inteligente
   for (const [cat, kws] of Object.entries(CATEGORIAS_KW)) {
     for (const kw of kws) {
-      const kwNorm = kw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      if (d.includes(kwNorm)) return cat;
+      if (matchKW(d, kw)) return cat;
     }
   }
-  for (const p of PALAVRAS_TRANSFERENCIA) if (d.includes(p)) return "Transferências";
+  // 2. Transferência/PIX — só se não matchou categoria acima
+  for (const p of PALAVRAS_TRANSFERENCIA) {
+    if (new RegExp(`(?<![a-z0-9])${p}(?![a-z0-9])`).test(d)) return "Transferências";
+  }
+  // 3. Nome de pessoa (último recurso)
   if (ehNomePessoa(descricao)) return "Transferências";
   return "Outros";
 }
@@ -716,6 +796,7 @@ const S={
 // ═══════════════════════════════════════════════════════════════
 export default function LumenApp() {
   const [data,setData]=useState(null);
+  const [catOverrides,setCatOverrides]=useState({}); // {descricao -> categoria manual}
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
   const [loadingStep,setLoadingStep]=useState(0);
@@ -773,16 +854,30 @@ export default function LumenApp() {
     processFile(e.dataTransfer.files[0]);
   },[processFile]);
 
-  const filtered=useMemo(()=>{
+  // Aplica overrides manuais de categoria sobre os dados brutos
+  const dataWithOverrides=useMemo(()=>{
     if(!data) return [];
-    let d=data;
+    return data.map(r=>{
+      const key=r.descricao+"||"+r.data.toISOString();
+      return catOverrides[key] ? {...r, categoria:catOverrides[key]} : r;
+    });
+  },[data,catOverrides]);
+
+  const filtered=useMemo(()=>{
+    if(!dataWithOverrides.length) return [];
+    let d=dataWithOverrides;
     if(filterDe)  d=d.filter(r=>r.data>=new Date(filterDe));
     if(filterAte){const ate=new Date(filterAte);ate.setDate(ate.getDate()+1);d=d.filter(r=>r.data<ate);}
     if(filterCats.length) d=d.filter(r=>filterCats.includes(r.categoria));
     if(filterTipo==="gastos")   d=d.filter(r=>r.valor<0);
     if(filterTipo==="entradas") d=d.filter(r=>r.valor>0);
     return d;
-  },[data,filterDe,filterAte,filterCats,filterTipo]);
+  },[dataWithOverrides,filterDe,filterAte,filterCats,filterTipo]);
+
+  const changeCat=(r, newCat)=>{
+    const key=r.descricao+"||"+r.data.toISOString();
+    setCatOverrides(prev=>({...prev,[key]:newCat}));
+  };
 
   const metricas   =useMemo(()=>calcularMetricasAvancadas(filtered),[filtered]);
   const tendencias =useMemo(()=>analisarTendencias(filtered),[filtered]);
@@ -1179,7 +1274,7 @@ export default function LumenApp() {
           {/* ══ TRANSAÇÕES ══ */}
           {activeTab===5&&<>
             <h1 style={S.pT}>Transações</h1>
-            <p style={S.pS}>Histórico completo de movimentações</p>
+            <p style={S.pS}>Histórico completo de movimentações · clique na categoria para editar</p>
             <div style={S.fRow}>
               <input placeholder="Buscar na descrição..." style={S.fSearch} value={searchTx} onChange={e=>setSearchTx(e.target.value)}/>
               <select style={S.fSel} value={sortTx} onChange={e=>setSortTx(e.target.value)}>
@@ -1188,22 +1283,64 @@ export default function LumenApp() {
                 <option value="valor_desc">Valor (maior)</option>
                 <option value="valor_asc">Valor (menor)</option>
               </select>
+              {Object.keys(catOverrides).length>0&&(
+                <button style={{...S.dlBtn,color:"#f87171",borderColor:"rgba(248,113,113,0.3)"}}
+                  onClick={()=>setCatOverrides({})}>
+                  ↺ Resetar edições ({Object.keys(catOverrides).length})
+                </button>
+              )}
               <button style={S.dlBtn} onClick={downloadCSV}>↓ Exportar CSV</button>
             </div>
+            {Object.keys(catOverrides).length>0&&(
+              <div style={{marginBottom:16,padding:"10px 16px",borderRadius:10,background:"rgba(110,231,183,0.06)",border:"1px solid rgba(110,231,183,0.15)",fontSize:"0.8rem",color:"#6ee7b7"}}>
+                ✓ {Object.keys(catOverrides).length} categoria{Object.keys(catOverrides).length>1?"s":""} editada{Object.keys(catOverrides).length>1?"s":""} manualmente nesta sessão
+              </div>
+            )}
             <div style={S.card}>
               <div style={{overflowX:"auto"}}>
                 <table style={S.tbl}>
                   <thead><tr>{["Data","Descrição","Categoria","Valor","Saldo"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {txDisplay.map((r,i)=>(
-                      <tr key={i} style={S.tr} className="ltr">
-                        <td style={S.td}>{fmtDate(r.data)}</td>
-                        <td style={S.tdM}>{r.descricao.slice(0,58)}</td>
-                        <td style={S.td}><span style={S.badge}>{r.categoria}</span></td>
-                        <td style={{...S.td,color:r.valor<0?"#f87171":"#6ee7b7",fontWeight:600}}>{fmtBRL(r.valor)}</td>
-                        <td style={S.td}>{fmtBRL(r.saldo)}</td>
-                      </tr>
-                    ))}
+                    {txDisplay.map((r,i)=>{
+                      const overrideKey=r.descricao+"||"+r.data.toISOString();
+                      const isEdited=!!catOverrides[overrideKey];
+                      return(
+                        <tr key={i} style={S.tr} className="ltr">
+                          <td style={S.td}>{fmtDate(r.data)}</td>
+                          <td style={S.tdM}>{r.descricao.slice(0,58)}</td>
+                          <td style={{...S.td,padding:"8px 14px"}}>
+                            <select
+                              value={r.categoria}
+                              onChange={e=>changeCat(r,e.target.value)}
+                              style={{
+                                background: isEdited?"rgba(110,231,183,0.12)":"rgba(255,255,255,0.04)",
+                                border: isEdited?"1px solid rgba(110,231,183,0.4)":"1px solid rgba(255,255,255,0.08)",
+                                borderRadius:8,
+                                padding:"4px 10px",
+                                color: isEdited?"#6ee7b7":"#6ee7b7",
+                                fontSize:"0.72rem",
+                                fontWeight:600,
+                                cursor:"pointer",
+                                outline:"none",
+                                appearance:"none",
+                                WebkitAppearance:"none",
+                                paddingRight:24,
+                                backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236ee7b7'/%3E%3C/svg%3E")`,
+                                backgroundRepeat:"no-repeat",
+                                backgroundPosition:"right 8px center",
+                              }}
+                            >
+                              {[...Object.keys(CATEGORIAS_KW),"Transferências","Outros"].map(c=>(
+                                <option key={c} value={c} style={{background:"#141414",color:"#f0ebe4"}}>{c}</option>
+                              ))}
+                            </select>
+                            {isEdited&&<span style={{fontSize:"0.62rem",color:"#6ee7b7",marginLeft:4,opacity:0.7}}>✎</span>}
+                          </td>
+                          <td style={{...S.td,color:r.valor<0?"#f87171":"#6ee7b7",fontWeight:600}}>{fmtBRL(r.valor)}</td>
+                          <td style={S.td}>{fmtBRL(r.saldo)}</td>
+                        </tr>
+                      );
+                    })}
                     {!txDisplay.length&&<tr><td colSpan={5} style={{...S.td,textAlign:"center",padding:"40px",color:"#303030"}}>Nenhuma transação encontrada.</td></tr>}
                   </tbody>
                 </table>
