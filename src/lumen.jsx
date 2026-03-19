@@ -726,6 +726,13 @@ input,select,button,textarea{font-family:'DM Sans',sans-serif;}
 .anim-kpi>*:nth-child(6){animation-delay:0.3s;}
 .anim-kpi>*:nth-child(7){animation-delay:0.35s;}
 .anim-kpi>*:nth-child(8){animation-delay:0.4s;}
+input[type="date"]::-webkit-calendar-picker-indicator{
+  filter: invert(1) brightness(0.7);
+  cursor:pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover{
+  filter: invert(1) brightness(1);
+}
 @media(max-width:860px){
   .lsidebar{display:none!important;}
   .lmain{padding:24px 16px!important;}
@@ -804,6 +811,75 @@ const S={
 };
 
 // ═══════════════════════════════════════════════════════════════
+// CONFIRM DIALOG
+// ═══════════════════════════════════════════════════════════════
+function ConfirmDialog({dialog, onConfirm, onCancel}) {
+  if(!dialog) return null;
+  const {r, newCat, count, oldCat} = dialog;
+  const label = r.descricao.length>40 ? r.descricao.slice(0,40)+"…" : r.descricao;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn 0.15s ease"}}>
+      <div style={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,padding:"32px",maxWidth:420,width:"90%",boxShadow:"0 24px 64px rgba(0,0,0,0.6)"}}>
+        <div style={{fontSize:"0.68rem",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:16}}>Confirmar mudança de categoria</div>
+        {/* Transação */}
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"14px 16px",marginBottom:20}}>
+          <div style={{fontSize:"0.75rem",color:"#555",marginBottom:4}}>Transação</div>
+          <div style={{fontSize:"0.92rem",color:"#f0ebe4",fontWeight:600,marginBottom:8}}>{label}</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <span style={{padding:"3px 10px",borderRadius:100,background:"rgba(248,113,113,0.12)",color:"#f87171",fontSize:"0.72rem",fontWeight:600}}>{oldCat}</span>
+            <span style={{color:"#444",fontSize:"1rem"}}>→</span>
+            <span style={{padding:"3px 10px",borderRadius:100,background:"rgba(110,231,183,0.12)",color:"#6ee7b7",fontSize:"0.72rem",fontWeight:600}}>{newCat}</span>
+          </div>
+        </div>
+        {/* Aviso de em massa */}
+        {count>1&&(
+          <div style={{background:"rgba(250,204,21,0.06)",border:"1px solid rgba(250,204,21,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:"0.82rem",color:"#facc15"}}>
+            ⚠ Esta mudança será aplicada em <strong>{count} transações</strong> com a mesma descrição.
+          </div>
+        )}
+        {count===1&&(
+          <div style={{background:"rgba(110,231,183,0.05)",border:"1px solid rgba(110,231,183,0.15)",borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:"0.82rem",color:"#6ee7b7"}}>
+            Esta transação será movida para <strong>{newCat}</strong>.
+          </div>
+        )}
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onCancel} style={{flex:1,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"11px",color:"#666",fontSize:"0.88rem",cursor:"pointer",fontFamily:"inherit"}}>
+            Cancelar
+          </button>
+          <button onClick={onConfirm} style={{flex:2,background:"#6ee7b7",border:"none",borderRadius:10,padding:"11px",color:"#080808",fontSize:"0.88rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            Confirmar mudança
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+function Toast({toast}) {
+  if(!toast) return null;
+  const isSuccess = toast.type==="success";
+  return(
+    <div style={{
+      position:"fixed",bottom:32,right:32,zIndex:2000,
+      background: isSuccess?"#111":"#1a0a0a",
+      border:`1px solid ${isSuccess?"rgba(110,231,183,0.3)":"rgba(248,113,113,0.3)"}`,
+      borderLeft:`3px solid ${isSuccess?"#6ee7b7":"#f87171"}`,
+      borderRadius:12,padding:"14px 20px",
+      maxWidth:380,minWidth:260,
+      boxShadow:"0 16px 48px rgba(0,0,0,0.5)",
+      animation:"fadeUp 0.3s cubic-bezier(0.22,1,0.36,1) both",
+      fontSize:"0.88rem",color:"#f0ebe4",lineHeight:1.5,
+      fontFamily:"'DM Sans',sans-serif",
+    }}>
+      {toast.msg}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // APP
 // ═══════════════════════════════════════════════════════════════
 export default function LumenApp() {
@@ -811,6 +887,8 @@ export default function LumenApp() {
   const [catOverrides,setCatOverrides]=useState({}); // {descricao -> categoria manual}
   const [catSelecionada,setCatSelecionada]=useState(null); // categoria com painel aberto
   const [catPendente,setCatPendente]=useState(null);       // próxima categoria (clicada enquanto painel aberto)
+  const [confirmDialog,setConfirmDialog]=useState(null);   // {r, newCat, count, oldCat}
+  const [toast,setToast]=useState(null);                   // {msg, type}
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
   const [loadingStep,setLoadingStep]=useState(0);
@@ -888,24 +966,38 @@ export default function LumenApp() {
     return d;
   },[dataWithOverrides,filterDe,filterAte,filterCats,filterTipo]);
 
-  const changeCat=(r, newCat, applyAll=true)=>{
+  const showToast=(msg,type="success")=>{
+    setToast({msg,type});
+    setTimeout(()=>setToast(null),3500);
+  };
+
+  const applyChangeCat=(r, newCat, count)=>{
+    const oldCat=r.categoria;
     setCatOverrides(prev=>{
       const next={...prev};
-      if(applyAll && data){
-        // Aplica em TODAS as transações com a mesma descrição normalizada
-        const descNorm=r.descricao.trim().toLowerCase();
-        data.forEach(tx=>{
-          if(tx.descricao.trim().toLowerCase()===descNorm){
-            const k=tx.descricao+"||"+tx.data.toISOString();
-            next[k]=newCat;
-          }
-        });
-      } else {
-        const key=r.descricao+"||"+r.data.toISOString();
-        next[key]=newCat;
-      }
+      const descNorm=r.descricao.trim().toLowerCase();
+      data.forEach(tx=>{
+        if(tx.descricao.trim().toLowerCase()===descNorm){
+          const k=tx.descricao+"||"+tx.data.toISOString();
+          next[k]=newCat;
+        }
+      });
       return next;
     });
+    const label=r.descricao.length>30?r.descricao.slice(0,30)+"…":r.descricao;
+    showToast(`✓ "${label}" movido de ${oldCat} → ${newCat}${count>1?` (${count} transações)`:""}`, "success");
+  };
+
+  const changeCat=(r, newCat, applyAll=true)=>{
+    if(newCat===r.categoria) return;
+    if(applyAll && data){
+      const descNorm=r.descricao.trim().toLowerCase();
+      const count=data.filter(tx=>tx.descricao.trim().toLowerCase()===descNorm).length;
+      // Sempre pede confirmação
+      setConfirmDialog({r, newCat, count, oldCat:r.categoria});
+    } else {
+      applyChangeCat(r, newCat, 1);
+    }
   };
 
   const metricas   =useMemo(()=>calcularMetricasAvancadas(filtered),[filtered]);
@@ -1051,7 +1143,7 @@ export default function LumenApp() {
             <div style={S.sLbl}>Tipo</div>
             {[["todas","Todas"],["gastos","Gastos"],["entradas","Entradas"]].map(([v,l])=>(
               <div key={v} style={S.chkR} onClick={()=>setFilterTipo(v)}>
-                <div style={{...S.chkB,...(filterTipo===v?S.chkBA:{})}}>{filterTipo===v&&<span style={{color:"#f0ebe4",fontSize:"0.52rem",fontWeight:900}}>✓</span>}</div>
+                <div style={{...S.chkB,...(filterTipo===v?S.chkBA:{})}}>{filterTipo===v&&<span style={{color:"#080808",fontSize:"0.52rem",fontWeight:900}}>✓</span>}</div>
                 <span style={{...S.chkL,...(filterTipo===v?S.chkLA:{})}}>{l}</span>
               </div>
             ))}
@@ -1500,6 +1592,12 @@ export default function LumenApp() {
           </>}
         </main>
       </div>
+      <ConfirmDialog
+        dialog={confirmDialog}
+        onConfirm={()=>{ applyChangeCat(confirmDialog.r, confirmDialog.newCat, confirmDialog.count); setConfirmDialog(null); }}
+        onCancel={()=>setConfirmDialog(null)}
+      />
+      <Toast toast={toast}/>
     </div>
   );
 }
