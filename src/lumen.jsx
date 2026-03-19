@@ -809,7 +809,8 @@ const S={
 export default function LumenApp() {
   const [data,setData]=useState(null);
   const [catOverrides,setCatOverrides]=useState({}); // {descricao -> categoria manual}
-  const [catSelecionada,setCatSelecionada]=useState(null); // categoria clicada no donut
+  const [catSelecionada,setCatSelecionada]=useState(null); // categoria com painel aberto
+  const [catPendente,setCatPendente]=useState(null);       // próxima categoria (clicada enquanto painel aberto)
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
   const [loadingStep,setLoadingStep]=useState(0);
@@ -887,9 +888,24 @@ export default function LumenApp() {
     return d;
   },[dataWithOverrides,filterDe,filterAte,filterCats,filterTipo]);
 
-  const changeCat=(r, newCat)=>{
-    const key=r.descricao+"||"+r.data.toISOString();
-    setCatOverrides(prev=>({...prev,[key]:newCat}));
+  const changeCat=(r, newCat, applyAll=true)=>{
+    setCatOverrides(prev=>{
+      const next={...prev};
+      if(applyAll && data){
+        // Aplica em TODAS as transações com a mesma descrição normalizada
+        const descNorm=r.descricao.trim().toLowerCase();
+        data.forEach(tx=>{
+          if(tx.descricao.trim().toLowerCase()===descNorm){
+            const k=tx.descricao+"||"+tx.data.toISOString();
+            next[k]=newCat;
+          }
+        });
+      } else {
+        const key=r.descricao+"||"+r.data.toISOString();
+        next[key]=newCat;
+      }
+      return next;
+    });
   };
 
   const metricas   =useMemo(()=>calcularMetricasAvancadas(filtered),[filtered]);
@@ -1035,7 +1051,7 @@ export default function LumenApp() {
             <div style={S.sLbl}>Tipo</div>
             {[["todas","Todas"],["gastos","Gastos"],["entradas","Entradas"]].map(([v,l])=>(
               <div key={v} style={S.chkR} onClick={()=>setFilterTipo(v)}>
-                <div style={{...S.chkB,...(filterTipo===v?S.chkBA:{})}}>{filterTipo===v&&<span style={{color:"#080808",fontSize:"0.52rem",fontWeight:900}}>✓</span>}</div>
+                <div style={{...S.chkB,...(filterTipo===v?S.chkBA:{})}}>{filterTipo===v&&<span style={{color:"#f0ebe4",fontSize:"0.52rem",fontWeight:900}}>✓</span>}</div>
                 <span style={{...S.chkL,...(filterTipo===v?S.chkLA:{})}}>{l}</span>
               </div>
             ))}
@@ -1142,6 +1158,19 @@ export default function LumenApp() {
 
           {/* ══ CATEGORIAS ══ */}
           {activeTab===2&&(()=>{
+            // Se tem painel aberto e clica em outra: guarda como pendente (só aplica ao fechar)
+            const selecionarCat = (label) => {
+              if(!catSelecionada || label===catSelecionada) {
+                setCatSelecionada(prev=>prev===label?null:label);
+                setCatPendente(null);
+              } else {
+                setCatPendente(label);
+              }
+            };
+            const fecharPainel = () => {
+              if(catPendente) { setCatSelecionada(catPendente); setCatPendente(null); }
+              else { setCatSelecionada(null); }
+            };
             const txsCat = catSelecionada
               ? filtered.filter(r=>r.valor<0&&r.categoria===catSelecionada)
               : null;
@@ -1153,25 +1182,30 @@ export default function LumenApp() {
               <div style={S.g13} className="lg2">
                 <div style={S.card}>
                   <div style={S.cT}>Distribuição</div>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:14,cursor:"pointer"}}
-                    onClick={()=>setCatSelecionada(null)}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
                     <DonutChart
                       data={byCategoria.slice(0,10)}
                       colors={CAT_COLORS}
                       fmt={fmtBRL}
-                      onSliceClick={label=>setCatSelecionada(prev=>prev===label?null:label)}
+                      onSliceClick={label=>selecionarCat(label)}
                       selectedLabel={catSelecionada}
                     />
                   </div>
                   {catSelecionada&&(
                     <div style={{marginBottom:10,padding:"6px 12px",borderRadius:8,background:`${catColor}15`,border:`1px solid ${catColor}40`,fontSize:"0.78rem",color:catColor,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span>● {catSelecionada}</span>
-                      <button onClick={()=>setCatSelecionada(null)} style={{background:"none",border:"none",color:catColor,cursor:"pointer",fontSize:"0.9rem"}}>✕</button>
+                      <button onClick={fecharPainel} style={{background:"none",border:"none",color:catColor,cursor:"pointer",fontSize:"0.9rem"}}>✕</button>
+                    </div>
+                  )}
+                  {catPendente&&(
+                    <div style={{marginBottom:10,padding:"6px 12px",borderRadius:8,background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.1)",fontSize:"0.75rem",color:"#666",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span>→ {catPendente} (feche para abrir)</span>
+                      <button onClick={()=>setCatPendente(null)} style={{background:"none",border:"none",color:"#555",cursor:"pointer"}}>✕</button>
                     </div>
                   )}
                   {byCategoria.map((c,i)=>(
                     <div key={c.label} style={{...S.legI,cursor:"pointer",opacity:catSelecionada&&catSelecionada!==c.label?0.35:1,transition:"opacity 0.15s"}}
-                      onClick={()=>setCatSelecionada(prev=>prev===c.label?null:c.label)}>
+                      onClick={()=>selecionarCat(c.label)}>
                       <div style={{...S.legD,background:CAT_COLORS[i%CAT_COLORS.length]}}/>
                       <span style={{...S.legL,color:catSelecionada===c.label?"#f0ebe4":""}}>{c.label}</span>
                       <span style={S.legV}>{c.pct.toFixed(1)}%</span>
@@ -1182,7 +1216,7 @@ export default function LumenApp() {
                   <div style={S.cT}>Ranking de gastos</div>
                   {byCategoria.map((c,i)=>(
                     <div key={c.label} style={{cursor:"pointer",opacity:catSelecionada&&catSelecionada!==c.label?0.3:1,transition:"opacity 0.15s"}}
-                      onClick={()=>setCatSelecionada(prev=>prev===c.label?null:c.label)}>
+                      onClick={()=>selecionarCat(c.label)}>
                       <div style={S.barH}>
                         <span style={{...S.barL,color:catSelecionada===c.label?"#f0ebe4":""}}>{c.label}</span>
                         <span style={S.barV}>{fmtBRL(c.value)}</span>
@@ -1201,7 +1235,9 @@ export default function LumenApp() {
                       <div style={{...S.cT,color:catColor,marginBottom:4}}>{catSelecionada}</div>
                       <div style={{fontSize:"0.82rem",color:"#555"}}>{txsCat.length} transações · {fmtBRL(txsCat.reduce((s,r)=>s+Math.abs(r.valor),0))}</div>
                     </div>
-                    <button onClick={()=>setCatSelecionada(null)} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"6px 14px",color:"#666",fontSize:"0.78rem",cursor:"pointer"}}>Fechar ✕</button>
+                    <button onClick={fecharPainel} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"6px 14px",color: catPendente?"#6ee7b7":"#666",fontSize:"0.78rem",cursor:"pointer"}}>
+                      {catPendente ? `→ ${catPendente} ✓` : "Fechar ✕"}
+                    </button>
                   </div>
                   <div style={{overflowX:"auto"}}>
                     <table style={S.tbl}>
@@ -1216,25 +1252,40 @@ export default function LumenApp() {
                               <td style={S.tdM}>{r.descricao.slice(0,60)}</td>
                               <td style={{...S.td,color:"#f87171",fontWeight:600}}>{fmtBRL(r.valor)}</td>
                               <td style={{...S.td,padding:"8px 14px"}}>
-                                <select
-                                  value={r.categoria}
-                                  onChange={e=>{changeCat(r,e.target.value); if(e.target.value!==catSelecionada) setCatSelecionada(e.target.value);}}
-                                  style={{
-                                    background:isEdited?`${catColor}18`:"rgba(255,255,255,0.04)",
-                                    border:isEdited?`1px solid ${catColor}50`:"1px solid rgba(255,255,255,0.08)",
-                                    borderRadius:8, padding:"5px 28px 5px 10px",
-                                    color:isEdited?catColor:"#888",
-                                    fontSize:"0.78rem", fontWeight:600, cursor:"pointer",
-                                    outline:"none", appearance:"none", WebkitAppearance:"none",
-                                    backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
-                                    backgroundRepeat:"no-repeat", backgroundPosition:"right 8px center",
-                                  }}
-                                >
-                                  {[...Object.keys(CATEGORIAS_KW),"Transferências","Outros"].map(c=>(
-                                    <option key={c} value={c} style={{background:"#141414",color:"#f0ebe4"}}>{c}</option>
-                                  ))}
-                                </select>
-                                {isEdited&&<span style={{fontSize:"0.62rem",color:"#6ee7b7",marginLeft:4}}>✎</span>}
+                                {(()=>{
+                                  // Conta quantas transações têm a mesma descrição (para mostrar ao usuário)
+                                  const descNorm=r.descricao.trim().toLowerCase();
+                                  const sameCount=data?data.filter(tx=>tx.descricao.trim().toLowerCase()===descNorm).length:1;
+                                  return(
+                                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                      <select
+                                        value={r.categoria}
+                                        onChange={e=>changeCat(r,e.target.value,true)}
+                                        style={{
+                                          background:isEdited?`${catColor}18`:"rgba(255,255,255,0.04)",
+                                          border:isEdited?`1px solid ${catColor}50`:"1px solid rgba(255,255,255,0.08)",
+                                          borderRadius:8, padding:"5px 28px 5px 10px",
+                                          color:isEdited?catColor:"#888",
+                                          fontSize:"0.78rem", fontWeight:600, cursor:"pointer",
+                                          outline:"none", appearance:"none", WebkitAppearance:"none",
+                                          backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
+                                          backgroundRepeat:"no-repeat", backgroundPosition:"right 8px center",
+                                        }}
+                                      >
+                                        {[...Object.keys(CATEGORIAS_KW),"Transferências","Outros"].map(c=>(
+                                          <option key={c} value={c} style={{background:"#141414",color:"#f0ebe4"}}>{c}</option>
+                                        ))}
+                                      </select>
+                                      {isEdited&&<span style={{fontSize:"0.62rem",color:"#6ee7b7"}}>✎</span>}
+                                      {sameCount>1&&!isEdited&&(
+                                        <span style={{fontSize:"0.6rem",color:"#444",whiteSpace:"nowrap"}}>{sameCount}× igual</span>
+                                      )}
+                                      {sameCount>1&&isEdited&&(
+                                        <span style={{fontSize:"0.6rem",color:"#6ee7b7",whiteSpace:"nowrap"}}>✓ {sameCount} alteradas</span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </td>
                             </tr>
                           );
@@ -1256,7 +1307,7 @@ export default function LumenApp() {
                         const txs=filtered.filter(r=>r.valor<0&&r.categoria===c.label);
                         const isSelected=catSelecionada===c.label;
                         return<tr key={c.label} style={{...S.tr,cursor:"pointer",background:isSelected?`${CAT_COLORS[i%CAT_COLORS.length]}0a`:""}}
-                          className="ltr" onClick={()=>setCatSelecionada(prev=>prev===c.label?null:c.label)}>
+                          className="ltr" onClick={()=>selecionarCat(c.label)}>
                           <td style={S.tdM}>
                             <span style={{...S.badge,background:`${CAT_COLORS[i%CAT_COLORS.length]}18`,color:CAT_COLORS[i%CAT_COLORS.length]}}>{c.label}</span>
                           </td>
